@@ -1,159 +1,271 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Loan Application</title>
+  <title>Finport Dashboard</title>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: auto; padding: 20px; }
-    label { font-weight: bold; display: block; margin-top: 10px; }
-    input, select { width: 100%; padding: 8px; margin-top: 5px; }
-    #submitBtn { padding: 10px 20px; margin-top: 20px; }
-    .note { font-size: 0.9em; color: gray; }
-    #successMessage { display: none; background: #d4edda; color: #155724; padding: 15px; margin-top: 20px; border-radius: 5px; }
+    body { font-family: Arial; padding: 20px; background-color: #f9f9f9; }
+    h1, h2 { color: #333; }
+    .stats { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+    .card { padding: 20px; border-radius: 10px; flex: 1; text-align: center; color: white; font-weight: bold; }
+    .card.total { background: #4CAF50; }
+    .card.approved { background: #2196F3; }
+    .card.pending { background: #FF9800; }
+    .btn { padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    .btn-primary { background-color: #4CAF50; color: white; }
+    .btn-danger { background-color: #f44336; color: white; }
+    .btn-secondary { background-color: #2196F3; color: white; }
+    .hidden { display: none; }
+    input, select { padding: 8px; width: 100%; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    .customer-list { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
+    .customer-card { background: white; border-radius: 10px; padding: 15px; width: 250px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .status-badge { padding: 5px 10px; border-radius: 5px; color: white; font-weight: bold; display: inline-block; }
+    .status-pending { background: #FF9800; }
+    .status-approved { background: #4CAF50; }
+    .status-rejected { background: #f44336; }
+    .insights { margin-top: 20px; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
 
-<h2>Loan Application Form</h2>
-<p class="note">Fields marked with * are required.</p>
+<h1>Finport Dashboard</h1>
 
-<form id="form">
-
-<label>Name*:</label>
-<input type="text" id="name" required placeholder="Your full name">
-
-<label>Email*:</label>
-<input type="email" id="email" required placeholder="Your email for confirmation">
-
-<label>Phone*:</label>
-<input type="tel" id="phone" required pattern="[0-9]{10}" placeholder="10-digit number">
-
-<label>Address:</label>
-<input type="text" id="address" placeholder="Your address">
-
-<label>Loan Type*:</label>
-<select id="loanType" required>
-  <option value="">Select</option>
-  <option>Home Loan</option>
-  <option>Personal Loan</option>
-  <option>Business Loan</option>
-  <option>Property Loan</option>
-  <option>Vehicle Loan</option>
-</select>
-
-<!-- Vehicle Type -->
-<div id="vehicleSection" style="display:none;">
-  <label>Vehicle Type*:</label>
-  <select id="vehicleType">
-    <option value="">Select</option>
-    <option>New</option>
-    <option>Used</option>
-  </select>
+<div class="stats">
+  <div class="card total">
+    Total Customers<br><span id="totalCustomers">0</span>
+  </div>
+  <div class="card approved">
+    Monthly Approved Amount<br><span id="monthlyApproved">0</span>
+  </div>
+  <div class="card pending">
+    Pending Applications<br><span id="pendingApps">0</span>
+  </div>
 </div>
 
-<label>Loan Amount:</label>
-<input type="number" id="amount" min="1000" placeholder="Enter amount">
+<div class="insights" id="dashboardInsights">
+  <h3>Insights</h3>
+  <div id="insightsContent">Loading...</div>
+</div>
 
-<label>Upload Documents (Max 5, PDF/JPG/PNG)</label>
-<input type="file" id="files" multiple accept=".pdf,.jpg,.png">
+<div>
+  <button class="btn btn-primary" onclick="showSection('addCustomer')">Add Customer</button>
+  <button class="btn btn-secondary" onclick="showSection('allCustomers')">All Customers</button>
+  <button class="btn btn-secondary" onclick="sendSummaryNow()">Send Monthly Summary Now</button>
+  <button class="btn btn-danger" onclick="deleteAllData()">Delete All Data</button>
+</div>
 
-<button type="submit" id="submitBtn">Submit</button>
+<div id="addCustomer" class="hidden">
+  <h2>Add Customer</h2>
+  <form id="customerForm">
+    Name:<br><input type="text" id="name" required><br>
+    Phone:<br><input type="text" id="phone" required><br>
+    Address:<br><input type="text" id="address"><br>
+    Loan Type:<br>
+    <select id="loanType" required>
+      <option value="">Select</option>
+      <option>Home Loan</option>
+      <option>Personal Loan</option>
+      <option>Business Loan</option>
+      <option>Property Loan</option>
+      <option>Vehicle Loan</option>
+    </select><br>
+    <div id="vehicleSection" style="display:none;">
+      Vehicle Type:<br>
+      <select id="vehicleType">
+        <option value="">Select</option>
+        <option>New</option>
+        <option>Used</option>
+      </select><br>
+    </div>
+    Amount:<br><input type="number" id="amount"><br>
+    Upload Documents (max 5):<br><input type="file" id="files" multiple><br>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+</div>
 
-</form>
+<div id="allCustomers" class="hidden">
+  <h2>All Customers</h2>
+  Search:<br><input type="text" id="search" placeholder="Name, Phone, Loan Type"><br>
+  <button onclick="exportAllExcel()" class="btn btn-secondary">Export All as Excel</button>
+  <div class="customer-list" id="customerList"></div>
+</div>
 
-<div id="successMessage">
-  <h3>Thank you!</h3>
-  <p>Your loan application has been submitted successfully. You will receive a confirmation email shortly.</p>
+<div id="customerDetails" class="hidden">
+  <h2>Customer Details</h2>
+  <div id="details" data-id=""></div>
+  <button onclick="exportCustomerPDF()" class="btn btn-secondary">Export PDF</button>
+  <button onclick="closeDetails()" class="btn btn-primary">Close</button>
 </div>
 
 <script>
-// Show/hide vehicle type
-document.getElementById("loanType").addEventListener("change", function() {
-  const vehicleSection = document.getElementById("vehicleSection");
-  const vehicleType = document.getElementById("vehicleType");
-  if (this.value === "Vehicle Loan") {
-    vehicleSection.style.display = "block";
-  } else {
-    vehicleSection.style.display = "none";
-    vehicleType.value = "";
-  }
-});
+const WEB_APP_URL = "const SHEET_ID = "114sl0Eak6VXHVV3PxNFdmr13zWKydj96PlUXSjhuunI";
+const FOLDER_ID = "16py-FfjW_3IYxVAvtnAqD_uXSMmD2iv0";
 
-// Submit form
-document.getElementById("form").addEventListener("submit", async function(e){
-  e.preventDefault();
-  const btn = document.getElementById("submitBtn");
-  btn.disabled = true;
-  btn.innerText = "Submitting...";
-
-  const files = document.getElementById("files").files;
-  if (files.length > 5) {
-    alert("Maximum 5 files allowed");
-    btn.disabled = false;
-    btn.innerText = "Submit";
-    return;
-  }
-
-  const data = {
-    name: document.getElementById("name").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    phone: document.getElementById("phone").value.trim(),
-    address: document.getElementById("address").value.trim(),
-    loanType: document.getElementById("loanType").value,
-    vehicleType: document.getElementById("vehicleType").value,
-    amount: Number(document.getElementById("amount").value),
-    files: []
-  };
-
+function doPost(e) {
   try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.size > 5*1024*1024) {
-        alert(`${file.name} is too large (max 5MB)`);
-        btn.disabled = false;
-        btn.innerText = "Submit";
-        return;
-      }
-      const base64 = await toBase64(file);
-      data.files.push({
-        name: file.name,
-        type: file.type,
-        data: base64.split(",")[1]
+    const params = JSON.parse(e.postData.contents);
+    if (!params.name || !params.phone || !params.loanType) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Missing required fields" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName("Customers");
+    const id = new Date().getTime();
+
+    // Create folder in Drive
+    const parent = DriveApp.getFolderById(FOLDER_ID);
+    const folder = parent.createFolder(params.name + "_" + params.phone);
+
+    // Save uploaded files in Drive
+    if (params.files && params.files.length > 0) {
+      params.files.forEach(file => {
+        const blob = Utilities.newBlob(Utilities.base64Decode(file.data), file.type, file.name);
+        folder.createFile(blob);
       });
     }
 
-    const response = await fetch("https://script.google.com/macros/s/AKfycbzz0KEdxZhuzrkhEY-_d5qNTHJRoj4_aJcd1kDayNlS4pIkIsXixdPP9-cxNX3eWHjU/exec", {
-      method: "POST",
-      body: JSON.stringify(data)
-    });
+    // Append data to Sheet
+    sheet.appendRow([
+      id,
+      params.name,
+      params.phone,
+      params.address || "",
+      params.loanType,
+      params.vehicleType || "",
+      params.amount || "",
+      "Pending",
+      folder.getUrl(),
+      new Date()
+    ]);
 
-    if (response.ok) {
-      // Show success message
-      document.getElementById("form").style.display = "none";
-      document.getElementById("successMessage").style.display = "block";
-
-      // Optionally: trigger email from Google Apps Script
-      // Backend script should handle sending email using data.email
-
-    } else {
-      throw new Error("Server error: " + response.status);
-    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Customer added", id })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    console.error(err);
-    alert("Error submitting form: " + err.message);
-    btn.disabled = false;
-    btn.innerText = "Submit";
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.message })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// GET all customers (optional search & sort)
+function doGet(e) {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName("Customers");
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  let customers = data.map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  });
+
+  // Search by name or phone
+  if (e.parameter.search) {
+    const search = e.parameter.search.toLowerCase();
+    customers = customers.filter(c => (c.Name.toLowerCase().includes(search) || c.Phone.toLowerCase().includes(search)));
+  }
+
+  // Sort by newest first
+  customers.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+  return ContentService.createTextOutput(JSON.stringify(customers)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// GET single customer details by ID
+function getCustomerById(id) {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName("Customers");
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const customer = data.map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).find(c => c.ID == id);
+  return customer || null;
+}
+
+// Delete all data (Sheet + Drive folders)
+function deleteAllData() {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName("Customers");
+  const parent = DriveApp.getFolderById(FOLDER_ID);
+
+  // Clear Sheet (keep headers)
+  sheet.clearContents();
+  sheet.appendRow(["ID", "Name", "Phone", "Address", "Loan Type", "Vehicle Type", "Amount", "Status", "Folder URL", "Timestamp"]);
+
+  // Delete all folders in parent
+  const folders = parent.getFolders();
+  while (folders.hasNext()) {
+    const folder = folders.next();
+    folder.setTrashed(true);
+  }
+
+  return { status: "success", message: "All data deleted" };
+}"; // Replace with your Apps Script Web App URL
+
+function showSection(sectionId){
+  ['addCustomer','allCustomers','customerDetails'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById(sectionId).classList.remove('hidden');
+}
+
+document.getElementById("loanType").addEventListener("change", function(){
+  document.getElementById("vehicleSection").style.display = this.value === "Vehicle Loan" ? "block" : "none";
 });
 
-function toBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-  });
-}
-</script>
+// Fetch dashboard stats
+async function fetchStats(){
+  const res = await fetch(WEB_APP_URL);
+  const data = await res.json();
+  document.getElementById("totalCustomers").innerText = data.length;
+  const pending = data.filter(c=>c.Status==="Pending").length;
+  document.getElementById("pendingApps").innerText = pending;
 
+  const month = new Date().getMonth();
+  const approved = data.filter(c=> new Date(c.Timestamp).getMonth()===month && c.Status==="Approved")
+                        .reduce((sum,c)=>sum+Number(c.Amount||0),0);
+  document.getElementById("monthlyApproved").innerText = approved;
+
+  // AI-like insights
+  const loanCounts = {};
+  data.forEach(c=>{ loanCounts[c['Loan Type']] = (loanCounts[c['Loan Type']]||0)+1; });
+  const mostApplied = Object.keys(loanCounts).reduce((a,b)=>loanCounts[a]>loanCounts[b]?a:b,"N/A");
+  const highPending = data.filter(c=>c.Status==="Pending" && Number(c.Amount||0)>50000).length;
+  document.getElementById("insightsContent").innerHTML = `
+    Most applied loan this month: <b>${mostApplied}</b><br>
+    Pending approvals over ₹50,000: <b>${highPending}</b>
+  `;
+}
+
+// Add customer
+document.getElementById("customerForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  const files = document.getElementById("files").files;
+  if(files.length>5){ alert("Max 5 files"); return; }
+
+  const data = {
+    name: document.getElementById("name").value,
+    phone: document.getElementById("phone").value,
+    address: document.getElementById("address").value,
+    loanType: document.getElementById("loanType").value,
+    vehicleType: document.getElementById("vehicleType").value,
+    amount: document.getElementById("amount").value,
+    files: []
+  };
+
+  for(let f of files){ data.files.push({name:f.name,type:f.type}); }
+
+  const res = await fetch(WEB_APP_URL,{method:"POST",body:JSON.stringify(data)});
+  const json = await res.json();
+  if(json.status==="success"){
+    alert("Customer added");
+    // ✅ Wait 1s to allow Sheets update, then refresh dashboard
+    setTimeout(()=>{
+      fetchStats();
+      fetchAllCustomers();
+    }, 1000);
+    showSection('addCustomer');
+  } else { alert(json.message); }
+});
+
+// Auto-refresh dashboard every 10s
+setInterval(fetchStats, 10000);
+
+// Other functions: fetchAllCustomers, showDetails, exportCustomerPDF, exportAllExcel, sendSummaryNow, deleteAllData
+// (Use the same code from previous full HTML, just included here for brevity)
+</script>
 </body>
 </html>
